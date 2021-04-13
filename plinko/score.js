@@ -24,7 +24,10 @@ function runAnalysis() {
   // (1,15) gives [1,... ,14]
   _.range(1, 15).forEach((k) => {
     const accuracy = _.chain(testSet)
-      .filter((testPoint) => knn(trainingSet, testPoint[0], k) === testPoint[3])
+      .filter(
+        (testPoint) =>
+          knn(trainingSet, _.initial(testPoint), k) === testPoint[3]
+      )
       .size()
       .divide(testSetSize)
       .value();
@@ -33,9 +36,12 @@ function runAnalysis() {
 }
 
 function knn(data, point, k) {
+  // point only has 3 values, which was parsed above at runAnalysise
   return _.chain(data)
-    .sortBy((row) => row[1])
-    .map((row) => [distance(row[0], point), row[3]])
+    .map((row) => {
+      return [distance(_.initial(row), point), _.last(row)];
+    })
+    .sortBy((row) => row[0])
     .slice(0, k)
     .countBy((row) => row[1])
     .toPairs()
@@ -46,8 +52,22 @@ function knn(data, point, k) {
     .value();
 }
 
+// pre-pythagoras forumula
+// function distance(pointA, pointB) {
+//   return Math.abs(pointA - pointB);
+// }
+
+// pythagoras theorem adjusted:
+// --- there can be additional variables into arrays ----
+// const pointA = [1,1,2] to [1,1,2,1,3]
+// const pointB = [4,5,6] to [4,5,6,7,8]
+
 function distance(pointA, pointB) {
-  return Math.abs(pointA - pointB);
+  _.chain(pointA)
+    .zip(pointB) // put them into an array
+    .map(([a, b]) => (a - b) ** 2)
+    .sum()
+    .value() ** 0.5;
 }
 
 function splitDataset(data, testCount) {
@@ -55,7 +75,11 @@ function splitDataset(data, testCount) {
   const shuffled = _.shuffle(data);
 
   const testSet = _.slice(shuffled, 0, testCount);
+  console.log(testSet);
   const trainingSet = _.slice(shuffled, testCount);
+  console.log(trainingSet);
 
   return [testSet, trainingSet];
 }
+
+module.exports = { knn };
